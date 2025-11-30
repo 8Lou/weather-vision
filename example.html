@@ -5,48 +5,310 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Widget Demo</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
             text-align: center;
+            color: white;
+            margin-bottom: 40px;
         }
-        .container {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 30px;
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0 0 10px 0;
+            font-weight: 700;
         }
-        .widget-wrapper {
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .instructions {
             background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+        }
+        
+        .instructions h2 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 1.8em;
+        }
+        
+        .instructions h3 {
+            color: #764ba2;
+            margin-top: 25px;
+            font-size: 1.3em;
+        }
+        
+        .instructions code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+        
+        .instructions pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
         }
-        .widget-wrapper h2 {
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        .examples {
+            display: grid;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .example-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .example-section h3 {
             margin-top: 0;
-            font-size: 16px;
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .example-section p {
             color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .widget-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+        }
+        
+        /* Different width examples */
+        .width-300 {
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        
+        .width-400 {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .width-full {
+            width: 100%;
+        }
+        
+        .side-by-side {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .note strong {
+            color: #856404;
+        }
+        
+        footer {
             text-align: center;
+            color: white;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
-    <h1>Weather Widget Demo</h1>
-    
-    <div class="container">
-        <div class="widget-wrapper">
-            <h2>Default Widget</h2>
-            <weather-widget></weather-widget>
-        </div>
+    <div class="header">
+        <h1>🌤️ Weather Widget</h1>
+        <p>Integration Examples & Documentation</p>
     </div>
+    
+    <!-- Integration Instructions -->
+    <section class="instructions">
+        <h2>📦 Quick Start Integration</h2>
+        
+        <h3>Step 1: Include the CSS and Script</h3>
+        <p>Add the weather widget CSS in the <code>&lt;head&gt;</code> section:</p>
+        <pre>&lt;link rel="stylesheet" href="path/to/weather-widget.css"&gt;</pre>
+        <p>Add the weather widget script before the closing <code>&lt;/body&gt;</code> tag:</p>
+        <pre>&lt;script src="path/to/weather-widget.js"&gt;&lt;/script&gt;</pre>
+        
+        <h3>Step 2: Add the Custom Element</h3>
+        <p>Place the <code>&lt;weather-widget&gt;</code> custom element anywhere in your HTML:</p>
+        <pre>&lt;weather-widget&gt;&lt;/weather-widget&gt;</pre>
+        
+        <h3>Step 3: That's It! 🎉</h3>
+        <p>The widget will automatically:</p>
+        <ul>
+            <li>Request geolocation permission on first load (if no saved cities)</li>
+            <li>Display weather for the user's location or saved cities</li>
+            <li>Save user preferences to browser LocalStorage</li>
+            <li>Refresh weather data every 10 minutes</li>
+        </ul>
+        
+        <div class="note">
+            <strong>Note:</strong> The widget uses Shadow DOM for style encapsulation, so it won't conflict with your page's CSS and your styles won't affect the widget.
+        </div>
+        
+        <h3>Complete Example</h3>
+        <pre>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;My Website&lt;/title&gt;
+    
+    &lt;!-- Include the widget CSS --&gt;
+    &lt;link rel="stylesheet" href="dist/weather-widget.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Welcome to My Website&lt;/h1&gt;
+    
+    &lt;!-- Weather Widget --&gt;
+    &lt;weather-widget&gt;&lt;/weather-widget&gt;
+    
+    &lt;!-- Include the widget script --&gt;
+    &lt;script src="dist/weather-widget.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+        
+        <h3>Browser Compatibility</h3>
+        <p>The widget works on all modern browsers:</p>
+        <ul>
+            <li>Chrome 54+</li>
+            <li>Firefox 63+</li>
+            <li>Safari 10.1+</li>
+            <li>Edge 79+</li>
+        </ul>
+    </section>
+    
+    <!-- Live Examples -->
+    <section class="examples">
+        <div class="example-section">
+            <h3>Example 1: Default Width (Responsive)</h3>
+            <p>The widget adapts to its container width. This example shows the widget in a full-width container.</p>
+            <div class="widget-container width-full">
+                <weather-widget></weather-widget>
+            </div>
+        </div>
+        
+        <div class="example-section">
+            <h3>Example 2: Fixed Width (400px)</h3>
+            <p>You can constrain the widget by placing it in a fixed-width container.</p>
+            <div class="widget-container width-400">
+                <weather-widget></weather-widget>
+            </div>
+        </div>
+        
+        <div class="example-section">
+            <h3>Example 3: Narrow Width (300px)</h3>
+            <p>The widget remains readable even in narrow containers, perfect for sidebars.</p>
+            <div class="widget-container width-300">
+                <weather-widget></weather-widget>
+            </div>
+        </div>
+        
+        <div class="example-section">
+            <h3>Example 4: Multiple Widgets Side by Side</h3>
+            <p>You can embed multiple instances of the widget on the same page. Each maintains its own state.</p>
+            <div class="side-by-side">
+                <div class="widget-container">
+                    <weather-widget></weather-widget>
+                </div>
+                <div class="widget-container">
+                    <weather-widget></weather-widget>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Additional Information -->
+    <section class="instructions">
+        <h2>⚙️ Features</h2>
+        <ul>
+            <li><strong>Automatic Geolocation:</strong> Detects user's location on first visit</li>
+            <li><strong>Multiple Cities:</strong> Add and manage multiple city locations</li>
+            <li><strong>Drag & Drop:</strong> Reorder cities by dragging in settings mode</li>
+            <li><strong>Persistent Storage:</strong> Saves preferences to browser LocalStorage</li>
+            <li><strong>Auto-Refresh:</strong> Updates weather data every 10 minutes</li>
+            <li><strong>Detailed Weather:</strong> Temperature, feels-like, humidity, wind, pressure, visibility, and more</li>
+            <li><strong>Responsive Design:</strong> Adapts to different container widths</li>
+            <li><strong>Style Encapsulation:</strong> Won't conflict with your page styles</li>
+        </ul>
+        
+        <h2>🎨 Customization</h2>
+        <p>The widget uses Shadow DOM for style encapsulation. To customize the container around the widget, simply style the parent element:</p>
+        <pre>&lt;style&gt;
+    .my-widget-container {
+        max-width: 400px;
+        margin: 20px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+&lt;/style&gt;
 
-    <script src="dist/weather-widget.js"></script>
+&lt;div class="my-widget-container"&gt;
+    &lt;weather-widget&gt;&lt;/weather-widget&gt;
+&lt;/div&gt;</pre>
+        
+        <h2>🔧 Troubleshooting</h2>
+        <ul>
+            <li><strong>Widget not appearing?</strong> Make sure the script is loaded and the custom element tag is correct.</li>
+            <li><strong>Geolocation not working?</strong> The user must grant permission, and the page must be served over HTTPS (except localhost).</li>
+            <li><strong>Weather not loading?</strong> Check browser console for API errors. The widget requires an OpenWeather API key.</li>
+            <li><strong>Cities not saving?</strong> Ensure LocalStorage is enabled in the browser (not in private/incognito mode).</li>
+        </ul>
+    </section>
+    
+    <footer>
+        <p>Weather Widget Demo | Built with Vue.js 3 & TypeScript</p>
+        <p>Weather data provided by OpenWeather API</p>
+    </footer>
+
 </body>
 </html>

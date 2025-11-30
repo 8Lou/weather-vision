@@ -1,9 +1,16 @@
 const path = require('path');
 const { VueLoaderPlugin } = require('vue-loader');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
+const TerserPlugin = require('terser-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+require('dotenv').config();
 
 module.exports = (env, argv) => {
   const isDevelopment = argv.mode === 'development';
+  const isProduction = argv.mode === 'production';
 
   return {
     entry: './src/main.ts',
@@ -16,6 +23,7 @@ module.exports = (env, argv) => {
         export: 'default'
       },
       globalObject: 'this',
+      publicPath: isDevelopment ? '/' : '',
       clean: true
     },
     resolve: {
@@ -34,33 +42,60 @@ module.exports = (env, argv) => {
           test: /\.ts$/,
           loader: 'ts-loader',
           options: {
-            appendTsSuffixTo: [/\.vue$/]
+            appendTsSuffixTo: [/\.vue$/],
+            transpileOnly: isDevelopment
           },
           exclude: /node_modules/
         },
         {
-          test: /\.scss$/,
-          use: [
-            'style-loader',
-            'css-loader',
-            'sass-loader'
-          ]
-        },
-        {
           test: /\.css$/,
           use: [
-            'style-loader',
-            'css-loader'
+            isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
+            {
+              loader: 'css-loader',
+              options: {
+                sourceMap: true,
+                importLoaders: 1
+              }
+            },
+            {
+              loader: 'postcss-loader',
+              options: {
+                sourceMap: true
+              }
+            }
           ]
         }
       ]
     },
     plugins: [
       new VueLoaderPlugin(),
+      new webpack.DefinePlugin({
+        __VUE_OPTIONS_API__: JSON.stringify(true),
+        __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false),
+        'process.env': JSON.stringify({
+          NODE_ENV: isDevelopment ? 'development' : 'production',
+          OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY || 'demo'
+        })
+      }),
       ...(isDevelopment ? [
         new HtmlWebpackPlugin({
           template: './example.html',
-          inject: 'body'
+          inject: 'body', // Inject JS before closing body tag (CSS is in JS via style-loader)
+          minify: false
+        })
+      ] : []),
+      ...(isProduction ? [
+        new MiniCssExtractPlugin({
+          filename: 'weather-widget.css'
+        }),
+        new CompressionPlugin({
+          filename: '[path][base].gz',
+          algorithm: 'gzip',
+          test: /\.(js|css|html|svg)$/,
+          threshold: 8192,
+          minRatio: 0.8
         })
       ] : [])
     ],
@@ -69,18 +104,46 @@ module.exports = (env, argv) => {
         directory: path.join(__dirname, 'dist')
       },
       compress: true,
-      port: 8080,
+      port: 8081,
       open: true,
       hot: true,
-      liveReload: true
-    },
-    externals: {
-      // Don't bundle Vue if it's already available
-      // vue: 'Vue'
+      liveReload: true,
+      client: {
+        overlay: {
+          errors: true,
+          warnings: false
+        }
+      }
     },
     optimization: {
-      minimize: !isDevelopment
+      minimize: isProduction,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            compress: {
+              drop_console: true,
+              drop_debugger: true,
+              pure_funcs: ['console.log', 'console.info', 'console.debug']
+            },
+            format: {
+              comments: false
+            },
+            mangle: true
+          },
+          extractComments: false
+        }),
+        new CssMinimizerPlugin()
+      ],
+      splitChunks: false,
+      runtimeChunk: false,
+      usedExports: true,
+      sideEffects: true
     },
-    devtool: isDevelopment ? 'source-map' : false
+    performance: {
+      hints: isProduction ? 'warning' : false,
+      maxEntrypointSize: 102400,
+      maxAssetSize: 102400
+    },
+    devtool: isDevelopment ? 'source-map' : 'source-map'
   };
 };

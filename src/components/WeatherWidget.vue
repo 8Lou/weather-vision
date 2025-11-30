@@ -1,41 +1,55 @@
 <template>
   <div class="weather-widget">
-    <!-- Display Mode -->
-    <DisplayMode
-      v-if="mode === 'display'"
-      :cities="cities"
-      @open-settings="toggleMode"
-    />
+    <ErrorBoundary @retry="handleErrorRetry" @reset="handleErrorReset">
+      <!-- Display Mode -->
+      <DisplayMode
+        v-if="mode === 'display'"
+        :cities="cities"
+        @open-settings="toggleMode"
+      />
 
-    <!-- Settings Mode -->
-    <SettingsMode
-      v-else
-      :cities="cities"
-      @close-settings="toggleMode"
-      @add-city="addCity"
-      @remove-city="removeCity"
-      @reorder-cities="reorderCities"
-    />
+      <!-- Settings Mode -->
+      <SettingsMode
+        v-else
+        :cities="cities"
+        @close-settings="toggleMode"
+        @add-city="addCity"
+        @remove-city="removeCity"
+        @reorder-cities="reorderCities"
+      />
+    </ErrorBoundary>
 
-    <!-- Global Error Display -->
+    <!-- Global Error Display (outside ErrorBoundary) -->
     <div v-if="globalError" class="weather-widget__error">
       {{ globalError }}
+      <button 
+        v-if="canRetry"
+        class="weather-widget__error-retry"
+        @click="retryLastAction"
+      >
+        Retry
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import ErrorBoundary from './ErrorBoundary.vue';
 import DisplayMode from './DisplayMode.vue';
 import SettingsMode from './SettingsMode.vue';
 import { storageService } from '../services/StorageService';
 import { createGeolocationService } from '../services/GeolocationService';
 import { createWeatherService } from '../services/WeatherService';
+import { retryWithBackoff, isTransientError, getUserFriendlyMessage } from '../utils/errorHandler';
 import type { City } from '../types/models';
 
 // Get API key from environment variable
-// TODO: Replace with actual API key configuration
-const API_KEY = process.env.OPENWEATHER_API_KEY || 'demo';
+// Falls back to provided API key if env var is not set
+const API_KEY = process.env.OPENWEATHER_API_KEY || '5ec582eefe33e199bc0245ff5a6aaa8e';
+
+// Log API key for debugging (only first few characters for security)
+console.log('[Weather Widget] API Key loaded:', API_KEY ? `${API_KEY.substring(0, 8)}...` : 'NOT SET');
 
 // Initialize services
 const geolocationService = createGeolocationService(API_KEY);
@@ -45,6 +59,8 @@ const weatherService = createWeatherService(API_KEY);
 const cities = ref<City[]>([]);
 const mode = ref<'display' | 'settings'>('display');
 const globalError = ref<string | null>(null);
+const canRetry = ref(false);
+const lastFailedAction = ref<(() => Promise<void>) | null>(null);
 
 /**
  * Load cities from LocalStorage
@@ -72,10 +88,52 @@ function saveCitiesToStorage(): void {
 }
 
 /**
+ * Retry the last failed action
+ */
+async function retryLastAction(): Promise<void> {
+  if (lastFailedAction.value) {
+    globalError.value = null;
+    canRetry.value = false;
+    
+    try {
+      await lastFailedAction.value();
+      lastFailedAction.value = null;
+    } catch (error) {
+      // Error will be handled by the action itself
+    }
+  }
+}
+
+/**
+ * Handle error boundary retry
+ */
+function handleErrorRetry(): void {
+  // Reload the widget
+  window.location.reload();
+}
+
+/**
+ * Handle error boundary reset
+ */
+function handleErrorReset(): void {
+  // Clear all data and reset to initial state
+  try {
+    storageService.clearCities();
+    cities.value = [];
+    mode.value = 'settings';
+    globalError.value = null;
+    canRetry.value = false;
+    lastFailedAction.value = null;
+  } catch (error) {
+    console.error('Error resetting widget:', error);
+  }
+}
+
+/**
  * Initialize with geolocation if no saved cities exist
  */
 async function initializeWithGeolocation(): Promise<void> {
-  try {
+  const action = async () => {
     // Get user's current position
     const coordinates = await geolocationService.getCurrentPosition();
     
@@ -112,21 +170,30 @@ async function initializeWithGeolocation(): Promise<void> {
     
     // Save to storage
     saveCitiesToStorage();
+  };
+
+  try {
+    // Use retry mechanism for transient errors
+    await retryWithBackoff(action, {
+      maxAttempts: 2,
+      delayMs: 1000,
+      onRetry: (attempt, error) => {
+        console.log(`Retrying geolocation (attempt ${attempt}):`, error.message);
+      },
+    });
   } catch (error) {
     console.error('Geolocation initialization failed:', error);
     
-    // Handle specific error types
-    if (error instanceof Error) {
-      if (error.message.includes('permission denied')) {
-        globalError.value = 'Location access denied. Please add cities manually.';
-      } else if (error.message.includes('unavailable')) {
-        globalError.value = 'Unable to determine your location. Please add cities manually.';
-      } else if (error.message.includes('timeout')) {
-        globalError.value = 'Location request timed out. Please add cities manually.';
-      } else {
-        globalError.value = 'Failed to get your location. Please add cities manually.';
-      }
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    // Store action for retry if it's a transient error
+    if (isTransientError(err)) {
+      lastFailedAction.value = action;
+      canRetry.value = true;
     }
+    
+    // Get user-friendly message
+    globalError.value = getUserFriendlyMessage(err);
     
     // Switch to settings mode so user can add cities manually
     mode.value = 'settings';
@@ -148,10 +215,7 @@ function toggleMode(): void {
  * Validates the city with the API before adding
  */
 async function addCity(cityName: string): Promise<void> {
-  try {
-    // Clear previous errors
-    globalError.value = null;
-    
+  const action = async () => {
     // Validate city by fetching its weather data
     const weatherData = await weatherService.getWeatherByCity(cityName);
     
@@ -187,21 +251,37 @@ async function addCity(cityName: string): Promise<void> {
     
     // Save to storage
     saveCitiesToStorage();
+  };
+
+  try {
+    // Clear previous errors
+    globalError.value = null;
+    canRetry.value = false;
+    
+    // Use retry mechanism for transient errors
+    await retryWithBackoff(action, {
+      maxAttempts: 3,
+      delayMs: 1000,
+      backoffMultiplier: 2,
+      onRetry: (attempt, error) => {
+        console.log(`Retrying add city (attempt ${attempt}):`, error.message);
+      },
+    });
   } catch (error) {
     console.error('Error adding city:', error);
     
-    // Handle specific error types
-    if (error instanceof Error) {
-      if (error.message.includes('not found')) {
-        globalError.value = 'City not found. Please check the name and try again.';
-      } else if (error.message.includes('rate limit')) {
-        globalError.value = 'Too many requests. Please try again later.';
-      } else if (error.message.includes('network')) {
-        globalError.value = 'Network error. Please check your connection.';
-      } else {
-        globalError.value = 'Failed to add city. Please try again.';
-      }
+    const err = error instanceof Error ? error : new Error(String(error));
+    
+    // Store action for retry if it's a transient error
+    if (isTransientError(err)) {
+      lastFailedAction.value = () => addCity(cityName);
+      canRetry.value = true;
     }
+    
+    // Get user-friendly message
+    const friendlyMessage = getUserFriendlyMessage(err);
+    console.log('[Weather Widget] Setting error message:', friendlyMessage);
+    globalError.value = friendlyMessage;
   }
 }
 
@@ -252,60 +332,33 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .weather-widget {
   position: relative;
   width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  
-  &__error {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 90%;
-    padding: 16px 24px;
-    background: #fee;
-    border: 1px solid #fcc;
-    border-radius: 8px;
-    color: #c33;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    animation: slideUp 0.3s ease;
-  }
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+.weather-widget__error {
+  @apply fixed bottom-5 left-1/2 -translate-x-1/2 max-w-[90%] px-6 py-4 bg-danger-light border border-danger-border rounded-lg text-danger-text text-sm shadow-lg z-[1000] flex items-center gap-3;
+  animation: slideUp 0.3s ease;
 }
 
-// Responsive adjustments
+.weather-widget__error-retry {
+  @apply px-3 py-1.5 bg-danger text-white border-none rounded font-medium text-[13px] cursor-pointer transition-all duration-200 whitespace-nowrap hover:bg-[#c0392b] active:scale-95;
+}
+
 @media (max-width: 768px) {
-  .weather-widget {
-    &__error {
-      bottom: 16px;
-      padding: 12px 20px;
-      font-size: 13px;
-    }
+  .weather-widget__error {
+    @apply bottom-4 px-5 py-3 text-[13px];
   }
 }
 
 @media (max-width: 480px) {
-  .weather-widget {
-    &__error {
-      bottom: 12px;
-      padding: 10px 16px;
-      font-size: 12px;
-      max-width: 95%;
-    }
+  .weather-widget__error {
+    @apply bottom-3 px-4 py-2.5 text-xs max-w-[95%];
   }
 }
 </style>

@@ -13,8 +13,9 @@
           class="settings-mode__close-icon" 
           viewBox="0 0 24 24" 
           fill="none" 
-          stroke="currentColor" 
+          stroke="#e74c3c" 
           stroke-width="2"
+          style="width: 24px; height: 24px; display: block;"
         >
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -53,7 +54,7 @@
         v-for="(city, index) in cities"
         :key="city.id"
         class="settings-mode__city-item"
-        :class="{ 'settings-mode__city-item--dragging': draggedIndex === index }"
+        :class="{ 'settings-mode__city-item--dragging': draggedIndex === Number(index) }"
         draggable="true"
         @dragstart="handleDragStart(index, $event)"
         @dragover="handleDragOver(index, $event)"
@@ -65,7 +66,8 @@
           <svg 
             class="settings-mode__drag-icon" 
             viewBox="0 0 24 24" 
-            fill="currentColor"
+            fill="#6b7280"
+            style="width: 20px; height: 20px; display: block;"
           >
             <circle cx="9" cy="5" r="1.5"></circle>
             <circle cx="9" cy="12" r="1.5"></circle>
@@ -94,8 +96,9 @@
             class="settings-mode__delete-icon" 
             viewBox="0 0 24 24" 
             fill="none" 
-            stroke="currentColor" 
+            stroke="#e74c3c" 
             stroke-width="2"
+            style="width: 20px; height: 20px; display: block;"
           >
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -202,8 +205,9 @@ function handleRemoveCity(cityId: string): void {
 /**
  * Handle drag start
  */
-function handleDragStart(index: number, event: DragEvent): void {
-  draggedIndex.value = index;
+function handleDragStart(index: number | string, event: DragEvent): void {
+  const idx = typeof index === 'string' ? parseInt(index, 10) : Number(index);
+  draggedIndex.value = idx;
   
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move';
@@ -215,35 +219,47 @@ function handleDragStart(index: number, event: DragEvent): void {
 /**
  * Handle drag over
  */
-function handleDragOver(index: number, event: DragEvent): void {
+function handleDragOver(index: number | string, event: DragEvent): void {
   event.preventDefault();
   
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = 'move';
   }
 
-  dragOverIndex.value = index;
+  // Convert index to number (Vue may pass it as string from template)
+  const idx = typeof index === 'string' ? parseInt(index, 10) : Number(index);
+  dragOverIndex.value = idx;
 }
 
 /**
  * Handle drop
  */
-function handleDrop(dropIndex: number, event?: DragEvent): void {
+function handleDrop(dropIndex: number | string, event?: DragEvent): void {
   event?.preventDefault();
   
-  if (draggedIndex.value === null || draggedIndex.value === dropIndex) {
+  // Early return if no dragged item
+  if (draggedIndex.value === null) {
+    return;
+  }
+  
+  const dropIdx: number = typeof dropIndex === 'string' ? parseInt(dropIndex, 10) : Number(dropIndex);
+  const draggedIdx: number = draggedIndex.value as number;
+  
+  // Don't do anything if dropping in the same position
+  // Use Number() to ensure both are numbers for comparison
+  if (Number(draggedIdx) === Number(dropIdx)) {
     return;
   }
 
   // Create a new array with reordered cities
   const newOrder = [...props.cities];
-  const draggedCity = newOrder[draggedIndex.value];
+  const draggedCity = newOrder[Number(draggedIdx)];
   
   // Remove from old position
-  newOrder.splice(draggedIndex.value, 1);
+  newOrder.splice(Number(draggedIdx), 1);
   
   // Insert at new position
-  newOrder.splice(dropIndex, 0, draggedCity);
+  newOrder.splice(Number(dropIdx), 0, draggedCity);
 
   // Emit reorder event
   emit('reorder-cities', newOrder);
@@ -258,298 +274,290 @@ function handleDragEnd(): void {
 }
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .settings-mode {
   width: 100%;
-  padding: 20px;
-  background: #f5f7fa;
+  padding: 1.25rem;
   min-height: 400px;
-
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-
-  &__title {
-    font-size: 24px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-  }
-
-  &__close-btn {
-    width: 44px;
-    height: 44px;
-    border: none;
-    background: #ffffff;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: #fee;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-
-    &:focus {
-      outline: 2px solid #e74c3c;
-      outline-offset: 2px;
-    }
-  }
-
-  &__close-icon {
-    width: 24px;
-    height: 24px;
-    color: #e74c3c;
-  }
-
-  &__add-city {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  &__input {
-    flex: 1;
-    padding: 12px 16px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
-
-    &:focus {
-      outline: none;
-      border-color: #3498db;
-    }
-
-    &::placeholder {
-      color: #999;
-    }
-  }
-
-  &__add-btn {
-    padding: 12px 24px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-
-    &:hover:not(:disabled) {
-      background: #2980b9;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-    }
-
-    &:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    &:disabled {
-      background: #bdc3c7;
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-
-    &:focus {
-      outline: 2px solid #3498db;
-      outline-offset: 2px;
-    }
-  }
-
-  &__error {
-    max-width: 600px;
-    margin: 0 auto 16px;
-    padding: 12px 16px;
-    background: #fee;
-    border: 1px solid #fcc;
-    border-radius: 8px;
-    color: #c33;
-    font-size: 14px;
-  }
-
-  &__city-list {
-    max-width: 600px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  &__city-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    cursor: move;
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    &--dragging {
-      opacity: 0.5;
-      transform: scale(0.98);
-    }
-  }
-
-  &__drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    color: #95a5a6;
-    cursor: grab;
-    flex-shrink: 0;
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
-
-  &__drag-icon {
-    width: 20px;
-    height: 20px;
-  }
-
-  &__city-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__city-name {
-    font-size: 18px;
-    font-weight: 500;
-    color: #2c3e50;
-  }
-
-  &__city-country {
-    font-size: 14px;
-    color: #7f8c8d;
-  }
-
-  &__delete-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-
-    &:hover:not(:disabled) {
-      background: #fee;
-    }
-
-    &:active:not(:disabled) {
-      transform: scale(0.95);
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    &:focus {
-      outline: 2px solid #e74c3c;
-      outline-offset: 2px;
-    }
-  }
-
-  &__delete-icon {
-    width: 20px;
-    height: 20px;
-    color: #e74c3c;
-  }
-
-  &__empty {
-    padding: 40px 20px;
-    text-align: center;
-    color: #95a5a6;
-    font-size: 16px;
-  }
+  background: #f9fafb;
 }
 
-// Responsive adjustments
+.settings-mode__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.settings-mode__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.settings-mode__close-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-mode__close-btn:hover {
+  background: #fee2e2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-mode__close-btn:active {
+  transform: scale(0.95);
+}
+
+.settings-mode__close-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5);
+}
+
+.settings-mode__close-icon {
+  @apply w-6 h-6;
+  color: #e74c3c !important;
+  stroke: #e74c3c !important;
+  fill: none !important;
+  display: block;
+  flex-shrink: 0;
+}
+
+.settings-mode__add-city {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.settings-mode__input {
+  flex: 1;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #ffffff;
+  color: #111827;
+}
+
+.settings-mode__input::placeholder {
+  color: #9ca3af;
+}
+
+.settings-mode__input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.settings-mode__add-btn {
+  padding: 0.625rem 1.25rem;
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.settings-mode__add-btn:hover:not(:disabled) {
+  background: #2563eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settings-mode__add-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.settings-mode__add-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.settings-mode__add-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.settings-mode__error {
+  @apply max-w-[600px] mx-auto mb-4 px-4 py-3 bg-danger-light border border-danger-border rounded-lg text-danger-text text-sm;
+}
+
+.settings-mode__city-list {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-mode__city-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: move;
+}
+
+.settings-mode__city-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.settings-mode__city-item--dragging {
+  @apply opacity-50 scale-[0.98];
+}
+
+.settings-mode__drag-handle {
+  @apply flex items-center justify-center w-6 h-6 text-gray-500 cursor-grab flex-shrink-0;
+  @apply active:cursor-grabbing;
+}
+
+.settings-mode__drag-icon {
+  @apply w-5 h-5;
+  color: #6b7280 !important;
+  fill: #6b7280 !important;
+  display: block;
+  flex-shrink: 0;
+}
+
+.settings-mode__city-info {
+  @apply flex-1 flex flex-col gap-1;
+}
+
+.settings-mode__city-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.settings-mode__city-country {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.settings-mode__delete-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.settings-mode__delete-btn:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.settings-mode__delete-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.settings-mode__delete-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.settings-mode__delete-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+
+.settings-mode__delete-icon {
+  @apply w-5 h-5;
+  color: #e74c3c !important;
+  stroke: #e74c3c !important;
+  fill: none !important;
+  display: block;
+  flex-shrink: 0;
+}
+
+.settings-mode__empty {
+  @apply py-10 px-5 text-center text-gray-500 text-base;
+}
+
 @media (max-width: 768px) {
   .settings-mode {
-    padding: 16px;
+    padding: 1rem;
+  }
 
-    &__title {
-      font-size: 20px;
-    }
+  .settings-mode__title {
+    font-size: 1.25rem;
+  }
 
-    &__close-btn {
-      width: 40px;
-      height: 40px;
-    }
+  .settings-mode__close-btn {
+    width: 2rem;
+    height: 2rem;
+  }
 
-    &__close-icon {
-      width: 20px;
-      height: 20px;
-    }
+  .settings-mode__close-icon {
+    width: 1rem;
+    height: 1rem;
+  }
 
-    &__add-city {
-      flex-direction: column;
-    }
+  .settings-mode__add-city {
+    flex-direction: column;
+  }
 
-    &__add-btn {
-      width: 100%;
-    }
+  .settings-mode__add-btn {
+    width: 100%;
+  }
 
-    &__city-item {
-      padding: 12px;
-    }
+  .settings-mode__city-item {
+    padding: 0.875rem;
+  }
 
-    &__city-name {
-      font-size: 16px;
-    }
+  .settings-mode__city-name {
+    font-size: 0.9375rem;
   }
 }
 
 @media (max-width: 480px) {
   .settings-mode {
-    padding: 12px;
+    padding: 0.75rem;
+  }
 
-    &__title {
-      font-size: 18px;
-    }
+  .settings-mode__title {
+    font-size: 1.125rem;
+  }
 
-    &__header {
-      margin-bottom: 16px;
-    }
+  .settings-mode__header {
+    margin-bottom: 1rem;
+  }
 
-    &__city-item {
-      gap: 8px;
-    }
+  .settings-mode__city-item {
+    gap: 0.625rem;
+    padding: 0.75rem;
   }
 }
 </style>

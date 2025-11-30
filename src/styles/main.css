@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Ensure SVG icons are visible */
+svg[stroke="currentColor"] {
+  stroke: currentColor;
+}
+
+svg[fill="currentColor"] {
+  fill: currentColor;
+}
+
+/* Default color for SVG if not specified */
+svg:not([fill]):not([stroke]) {
+  color: inherit;
+}
+
+/* Custom animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom component classes */
+@layer components {
+  .btn {
+    @apply px-6 py-3 rounded-lg font-medium cursor-pointer transition-all duration-300 border-none;
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-dark hover:shadow-lg;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl p-5 shadow-md transition-shadow duration-300 hover:shadow-lg;
+  }
+}
