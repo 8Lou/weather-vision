@@ -58,7 +58,7 @@
         @dragstart="handleDragStart(index, $event)"
         @dragover="handleDragOver(index, $event)"
         @dragend="handleDragEnd"
-        @drop="handleDrop(index)"
+        @drop="handleDrop(index, $event)"
       >
         <!-- Drag Handle -->
         <div class="settings-mode__drag-handle" aria-label="Drag to reorder">
@@ -146,7 +146,7 @@ function validateCityName(cityName: string): { valid: boolean; error?: string } 
 
   // Check for duplicate cities (case-insensitive comparison)
   const isDuplicate = props.cities.some(
-    city => city.name.toLowerCase() === trimmedName.toLowerCase()
+    (city: City) => city.name.toLowerCase() === trimmedName.toLowerCase()
   );
 
   if (isDuplicate) {
@@ -207,7 +207,8 @@ function handleDragStart(index: number, event: DragEvent): void {
   
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', index.toString());
+    // Set a dummy value to enable drag
+    event.dataTransfer.setData('text/plain', '');
   }
 }
 
@@ -227,7 +228,9 @@ function handleDragOver(index: number, event: DragEvent): void {
 /**
  * Handle drop
  */
-function handleDrop(dropIndex: number): void {
+function handleDrop(dropIndex: number, event?: DragEvent): void {
+  event?.preventDefault();
+  
   if (draggedIndex.value === null || draggedIndex.value === dropIndex) {
     return;
   }
