@@ -79,13 +79,18 @@ module.exports = (env, argv) => {
           OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY || 'demo'
         })
       }),
-      ...(isDevelopment ? [
-        new HtmlWebpackPlugin({
-          template: './example.html',
-          inject: 'body', // Inject JS before closing body tag (CSS is in JS via style-loader)
-          minify: false
-        })
-      ] : []),
+      new HtmlWebpackPlugin({
+        template: isDevelopment ? './example.html' : './index.html',
+        inject: 'body',
+        minify: isProduction ? {
+          collapseWhitespace: true,
+          removeComments: true,
+          removeRedundantAttributes: true,
+          removeScriptTypeAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          useShortDoctype: true
+        } : false
+      }),
       ...(isProduction ? [
         new MiniCssExtractPlugin({
           filename: 'weather-widget.css'
