@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Docs folder for GitHub Pages (uncomment if using docs folder)
+# !docs/
+
 # Environment variables
 .env
 .env.local

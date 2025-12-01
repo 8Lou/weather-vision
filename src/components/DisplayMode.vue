@@ -11,14 +11,24 @@
         class="display-mode__settings-icon" 
         viewBox="0 0 24 24" 
         fill="none" 
-        stroke="#374151" 
+        stroke="#4b5563" 
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
         xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        style="display: block; width: 18px; height: 18px;"
       >
-        <circle cx="12" cy="12" r="3"></circle>
-        <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364-6.364l-4.243 4.243m-2.828 2.828l-4.243 4.243M21.364 12.364l-4.243-4.243m-2.828-2.828l-4.243-4.243"></path>
+        <circle cx="12" cy="12" r="3" stroke="#4b5563" fill="none" stroke-width="2"></circle>
+        <line x1="12" y1="1" x2="12" y2="6" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="12" y1="18" x2="12" y2="23" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="4.22" y1="4.22" x2="7.76" y2="7.76" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="16.24" y1="16.24" x2="19.78" y2="19.78" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="1" y1="12" x2="6" y2="12" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="18" y1="12" x2="23" y2="12" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="4.22" y1="19.78" x2="7.76" y2="16.24" stroke="#4b5563" stroke-width="2"></line>
+        <line x1="16.24" y1="7.76" x2="19.78" y2="4.22" stroke="#4b5563" stroke-width="2"></line>
       </svg>
     </button>
 
@@ -152,16 +162,20 @@ onUnmounted(() => {
   right: 1.25rem;
   width: 2.25rem;
   height: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
   border: none;
   background: #ffffff;
   border-radius: 0.5rem;
   cursor: pointer;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
+  padding: 0;
+  margin: 0;
 }
 
 .display-mode__settings-btn:hover {
@@ -179,15 +193,24 @@ onUnmounted(() => {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 
+.display-mode__settings-btn svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 .display-mode__settings-icon {
-  width: 18px;
-  height: 18px;
-  color: #4b5563;
-  stroke: #4b5563;
-  fill: none;
-  display: block;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px;
+  min-height: 18px;
+  color: #4b5563 !important;
+  stroke: #4b5563 !important;
+  fill: none !important;
+  display: block !important;
   flex-shrink: 0;
   pointer-events: none;
+  vertical-align: middle;
 }
 
 .display-mode__city-list {
